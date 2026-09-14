@@ -1,0 +1,93 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "financial-complaint-triage"
+version = "0.1.0"
+description = "Routing and summarizing financial complaints with an open-weight instruction model, where output normalization moved measured F1 by 26 points."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Mukund Jaiswal" }]
+keywords = ["nlp", "classification", "summarization", "llm", "evaluation"]
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    # Shared evaluation harness, also used by my RAG and fine-tuning projects.
+    # Install it first: from git, or `pip install -e ../eval-harness` when
+    # working on both side by side.
+    "eval-harness>=0.1.0,<0.2",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "scikit-learn>=1.4",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+# The local GGUF runtime. Kept optional so the test suite installs in seconds.
+model = ["llama-cpp-python>=0.2.70", "huggingface-hub>=0.23"]
+# Reference-based summarization scoring. Heavy; only needed to score summaries.
+scoring = ["evaluate>=0.4", "bert-score>=0.3.13", "rouge-score>=0.1.2"]
+dev = [
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "mypy>=1.10",
+    "ruff>=0.6",
+    "pre-commit>=3.7",
+]
+
+[project.scripts]
+complaint-triage = "complaint_triage.cli:app"
+
+[project.urls]
+Repository = "https://github.com/mukundjaiswal/financial-complaint-triage"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/complaint_triage"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers --strict-config"
+
+[tool.coverage.run]
+source = ["complaint_triage"]
+branch = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "BLE", "SIM", "RUF", "ANN", "D"]
+ignore = ["D100", "D104", "ANN401"]
+
+[tool.ruff.lint.isort]
+# Pinned rather than inferred: eval-harness may be installed editable from a
+# sibling directory, which import detection would otherwise read as local.
+known-first-party = ["complaint_triage"]
+known-third-party = ["eval_harness"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "ANN"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["complaint_triage"]
+mypy_path = "src"
+strict = true
+warn_unreachable = true
+disallow_untyped_defs = true
+no_implicit_reexport = true
+
+[[tool.mypy.overrides]]
+module = ["llama_cpp.*", "evaluate.*", "sklearn.*", "huggingface_hub.*"]
+ignore_missing_imports = true
